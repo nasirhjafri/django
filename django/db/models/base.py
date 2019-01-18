@@ -382,19 +382,30 @@ class ModelStateFieldsCacheDescriptor:
 
 class ModelState:
     """Store model instance state."""
-    db = None
-    # If true, uniqueness validation checks will consider this a new, unsaved
-    # object. Necessary for correct validation of new instances of objects with
-    # explicit (non-auto) PKs. This impacts validation only; it has no effect
-    # on the actual save.
-    adding = True
     fields_cache = ModelStateFieldsCacheDescriptor()
+
+    def __init__(self, db, adding):
+        self.db = db
+        # If true, uniqueness validation checks will consider this a new, unsaved
+        # object. Necessary for correct validation of new instances of objects with
+        # explicit (non-auto) PKs. This impacts validation only; it has no effect
+        # on the actual save.
+        self.adding = adding
 
 
 class Model(metaclass=ModelBase):
 
     def __init__(self, *args, **kwargs):
         # Alias some things as locals to avoid repeat global lookups
+        db = None,
+        adding = True
+
+        if 'db' in kwargs:
+            db = kwargs.pop('db')
+
+        if 'adding' in kwargs:
+            adding = kwargs.pop('adding')
+
         cls = self.__class__
         opts = self._meta
         _setattr = setattr
@@ -403,7 +414,7 @@ class Model(metaclass=ModelBase):
         pre_init.send(sender=cls, args=args, kwargs=kwargs)
 
         # Set up the storage for instance state
-        self._state = ModelState()
+        self._state = ModelState(db=db, adding=adding)
 
         # There is a rather weird disparity here; if kwargs, it's set, then args
         # overrides it. It should be one or the other; don't duplicate the work
@@ -505,9 +516,8 @@ class Model(metaclass=ModelBase):
                 next(values_iter) if f.attname in field_names else DEFERRED
                 for f in cls._meta.concrete_fields
             ]
-        new = cls(*values)
-        new._state.adding = False
-        new._state.db = db
+
+        new = cls(db=db, adding=False, *values)
         return new
 
     def __repr__(self):

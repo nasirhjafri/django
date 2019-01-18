@@ -400,7 +400,8 @@ class QuerySet:
             clone = clone.order_by()
         num = len(clone)
         if num == 1:
-            return clone._result_cache[0]
+            result = clone._result_cache[0]
+            return result
         if not num:
             raise self.model.DoesNotExist(
                 "%s matching query does not exist." %
