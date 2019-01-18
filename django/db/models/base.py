@@ -397,14 +397,8 @@ class Model(metaclass=ModelBase):
 
     def __init__(self, *args, **kwargs):
         # Alias some things as locals to avoid repeat global lookups
-        db = None,
-        adding = True
-
-        if 'db' in kwargs:
-            db = kwargs.pop('db')
-
-        if 'adding' in kwargs:
-            adding = kwargs.pop('adding')
+        db = kwargs.pop('db', None)
+        adding = kwargs.pop('adding', True)
 
         cls = self.__class__
         opts = self._meta
